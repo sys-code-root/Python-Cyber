@@ -1,4 +1,11 @@
-streamlit
-pandas
-scikit-learn
-numpy
+# Cryptography & Secrets Management
+cryptography>=42.0.0
+
+# Data Analysis & Log Processing
+pandas>=2.2.0
+
+# Network & Web Security Inspection
+requests>=2.31.0
+
+# Image Metadata Handling (Privacidade/Higienização de imagens)
+Pillow>=10.2.0
