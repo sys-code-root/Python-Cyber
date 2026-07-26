@@ -1,1 +1,0 @@
-CONFIDENTIAL: Applied Cryptography Toolkit v0.2.0 - AES-256-GCM encryption pipeline test successful.

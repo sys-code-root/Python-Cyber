@@ -223,3 +223,7 @@ neon_matrix.db-journal
 neon_matrix.db-wal
 neon_matrix.db-shm
 *.db
+
+# Encryption CLI test files
+restored
+*.enc
