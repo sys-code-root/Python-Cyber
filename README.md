@@ -36,7 +36,7 @@ The project focuses on providing clean, modular, and straightforward code soluti
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/sys-code-root/Python-Cyber.git](https://github.com/sys-code-root/Python-Cyber.git)
+   git clone https://github.com/sys-code-root/Python-Cyber.git
    cd Python-Cyber
 
 2.  Create and activate a virtual environment:
