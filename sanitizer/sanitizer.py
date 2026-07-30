@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-"""High-performance hybrid stream sanitizer, encryptor, decrypter, and AI-powered PII detector."""
-
 import argparse
 import csv
 import hashlib
@@ -13,7 +10,6 @@ import sys
 import time
 from typing import Any, Generator, Iterator, Optional, Set, Union
 
-# Regex patterns for deterministic PII processing
 REGEX_PATTERNS = {
     "CPF": re.compile(r"\b\d{3}[\.-]?\d{3}[\.-]?\d{3}[\.-]?\d{2}\b"),
     "CNPJ": re.compile(r"\b\d{2}[\.-]?\d{3}[\.-]?\d{3}[\./-]?\d{4}[\.-]?\d{2}\b"),
@@ -57,7 +53,6 @@ SENSITIVE_KEYWORDS: Set[str] = {
 
 
 class AIService:
-    """Lazy-loaded AI Engine for Named Entity Recognition (NER) to detect unstructured PII."""
 
     def __init__(self, model_name: str = "pt_core_news_sm") -> None:
         self.model_name = model_name
@@ -89,7 +84,6 @@ class AIService:
             sys.exit(1)
 
     def extract_unstructured_pii(self, text: str) -> Set[str]:
-        """Extracts names and locations (PER, ORG, LOC, GPE) from unstructured text."""
         doc = self.nlp(text)
         pii_entities = set()
         for ent in doc.ents:
@@ -99,7 +93,6 @@ class AIService:
 
 
 class SanitizerEngine:
-    """Core engine responsible for masking, hashing, encrypting, and decrypting data."""
 
     def __init__(
         self,
@@ -143,13 +136,12 @@ class SanitizerEngine:
 
             try:
                 key_bytes = key.encode() if isinstance(key, str) else key
-                self.fernet = Fernet(key_bytes)  # type: ignore
+                self.fernet = Fernet(key_bytes)
             except Exception as exc:
                 sys.stderr.write(f"[!] Error initializing Fernet key: {exc}\n")
                 sys.exit(1)
 
     def _mask_value(self, val: str) -> str:
-        """Applies contextual masking to specific PII structures."""
         if "@" in val:
             user, domain = val.split("@", 1)
             masked_user = user[0] + "****" if len(user) > 1 else "*"
@@ -168,7 +160,6 @@ class SanitizerEngine:
         return f"{val[:2]}{'*' * (len(val) - 4)}{val[-2:]}"
 
     def transform(self, text: str) -> str:
-        """Transforms a single raw value based on the selected mode."""
         if not text:
             return text
 
@@ -190,7 +181,6 @@ class SanitizerEngine:
         return text
 
     def decrypt_text_block(self, text: str) -> str:
-        """Scans for ENC(...) patterns and decrypts their contents."""
 
         def replace_encrypted(match: re.Match) -> str:
             token = match.group(1)
@@ -206,7 +196,6 @@ class SanitizerEngine:
         return REGEX_ENC_PATTERN.sub(replace_encrypted, text)
 
     def sanitize_text_block(self, text: str) -> str:
-        """Sanitizes sensitive patterns, key-value pairs, and optional unstructured AI PII."""
         if self.mode == "decrypt":
             return self.decrypt_text_block(text)
 
@@ -224,18 +213,15 @@ class SanitizerEngine:
 
             return f"{key_part}{quote}{self.transform(raw_val)}{quote}"
 
-        # 1. Deterministic replacement for secrets (Key-Value)
         text = REGEX_KEY_VALUE_SECRET.sub(replace_secret, text)
 
-        # 2. Deterministic replacement for known RegEx entities (CPF, Email, Card, etc.)
         for pattern in REGEX_PATTERNS.values():
             text = pattern.sub(lambda m: self.transform(m.group(0)), text)
 
-        # 3. Optional AI-based unstructured PII replacement (Names/Locations)
         if self.use_ai and self.ai_engine:
             pii_entities = self.ai_engine.extract_unstructured_pii(text)
             for entity in pii_entities:
-                if len(entity.strip()) > 2:  # Avoid replacing short single-char noise
+                if len(entity.strip()) > 2:
                     text = text.replace(entity, self.transform(entity))
 
         return text
@@ -244,7 +230,6 @@ class SanitizerEngine:
 def process_csv_stream(
     reader: Iterator[str], engine: SanitizerEngine
 ) -> Generator[str, None, None]:
-    """Processes CSV content line-by-line using streaming buffers."""
     for line in reader:
         if not line.strip():
             yield line
@@ -267,7 +252,6 @@ def process_csv_stream(
 def process_sql_stream(
     reader: Iterator[str], engine: SanitizerEngine
 ) -> Generator[str, None, None]:
-    """Processes SQL dumps with column-aware targeted transformation."""
     for line in reader:
         if not line.strip() or engine.mode == "decrypt":
             yield engine.sanitize_text_block(line)
@@ -320,7 +304,6 @@ def process_sql_stream(
 def process_json_stream(
     reader: Iterator[str], engine: SanitizerEngine
 ) -> Generator[str, None, None]:
-    """Processes both standard JSON files and NDJSON stream lines."""
     preview_lines = []
     for line in reader:
         preview_lines.append(line)
@@ -388,13 +371,11 @@ def process_json_stream(
 def process_generic_stream(
     reader: Iterator[str], engine: SanitizerEngine
 ) -> Generator[str, None, None]:
-    """Fallback stream handler for unstructured text files (e.g., log files)."""
     for line in reader:
         yield engine.sanitize_text_block(line)
 
 
 def generate_benchmark_file(output_path: str, target_size_mb: int) -> None:
-    """Generates synthetic log/SQL datasets for performance benchmarking."""
     print(f"[*] Generating benchmark dataset (~{target_size_mb} MB) at: {output_path}...")
 
     cpfs = ["123.456.789-00", "987.654.321-11", "111.222.333-44"]
@@ -442,13 +423,11 @@ def generate_benchmark_file(output_path: str, target_size_mb: int) -> None:
 
 
 def read_file_by_line(filepath: str) -> Generator[str, None, None]:
-    """Reads a file lazily line-by-line to minimize memory footprint."""
     with open(filepath, "r", encoding="utf-8", errors="replace") as file:
         yield from file
 
 
 def main() -> None:
-    """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="High-performance stream sanitizer, encryptor, decrypter, and AI benchmarking tool."
     )
