@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+"""High-performance hybrid stream sanitizer, encryptor, decrypter, and AI-powered PII detector."""
+
 import argparse
 import csv
 import hashlib
@@ -8,8 +11,9 @@ import random
 import re
 import sys
 import time
-from typing import Any, Generator, Iterator, Optional, Union
+from typing import Any, Generator, Iterator, Optional, Set, Union
 
+# Regex patterns for deterministic PII processing
 REGEX_PATTERNS = {
     "CPF": re.compile(r"\b\d{3}[\.-]?\d{3}[\.-]?\d{3}[\.-]?\d{2}\b"),
     "CNPJ": re.compile(r"\b\d{2}[\.-]?\d{3}[\.-]?\d{3}[\./-]?\d{4}[\.-]?\d{2}\b"),
@@ -36,7 +40,7 @@ REGEX_SQL_INSERT = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
-SENSITIVE_KEYWORDS = {
+SENSITIVE_KEYWORDS: Set[str] = {
     "pass",
     "password",
     "token",
@@ -52,6 +56,48 @@ SENSITIVE_KEYWORDS = {
 }
 
 
+class AIService:
+    """Lazy-loaded AI Engine for Named Entity Recognition (NER) to detect unstructured PII."""
+
+    def __init__(self, model_name: str = "pt_core_news_sm") -> None:
+        self.model_name = model_name
+        self.nlp = self._load_model()
+
+    def _load_model(self) -> Any:
+        try:
+            import spacy
+
+            try:
+                return spacy.load(self.model_name)
+            except OSError:
+                sys.stderr.write(
+                    f"[!] Warning: spaCy model '{self.model_name}' not found.\n"
+                    f"[!] Attempting to download '{self.model_name}' automatically...\n"
+                )
+                from spacy.cli import download
+
+                download(self.model_name)
+                return spacy.load(self.model_name)
+        except ImportError:
+            sys.stderr.write(
+                "[!] Error: 'spacy' library is required when running with --use-ai.\n"
+                "[!] Please install it via: pip install spacy\n"
+            )
+            sys.exit(1)
+        except Exception as exc:
+            sys.stderr.write(f"[!] Error initializing AI Engine: {exc}\n")
+            sys.exit(1)
+
+    def extract_unstructured_pii(self, text: str) -> Set[str]:
+        """Extracts names and locations (PER, ORG, LOC, GPE) from unstructured text."""
+        doc = self.nlp(text)
+        pii_entities = set()
+        for ent in doc.ents:
+            if ent.label_ in ("PER", "PERSON", "LOC", "GPE", "ORG"):
+                pii_entities.add(ent.text)
+        return pii_entities
+
+
 class SanitizerEngine:
     """Core engine responsible for masking, hashing, encrypting, and decrypting data."""
 
@@ -60,10 +106,18 @@ class SanitizerEngine:
         mode: str = "mask",
         key: Optional[str] = None,
         salt: bytes = b"sanitizer_salt_2026",
+        use_ai: bool = False,
+        ai_model: str = "pt_core_news_sm",
     ) -> None:
         self.mode = mode.lower()
         self.salt = salt
         self.fernet: Optional[Any] = None
+        self.use_ai = use_ai
+        self.ai_engine: Optional[AIService] = None
+
+        if self.use_ai:
+            print("[*] Initializing Lazy AI Engine (spaCy NER)...")
+            self.ai_engine = AIService(model_name=ai_model)
 
         if self.mode in ("encrypt", "decrypt"):
             try:
@@ -76,20 +130,26 @@ class SanitizerEngine:
                 sys.exit(1)
 
             if self.mode == "decrypt" and not key:
-                sys.stderr.write("[!] Error: 'decrypt' mode requires a key provided via -k/--key.\n")
+                sys.stderr.write(
+                    "[!] Error: 'decrypt' mode requires a key provided via -k/--key.\n"
+                )
                 sys.exit(1)
 
             if not key and self.mode == "encrypt":
                 key = Fernet.generate_key().decode()
-                sys.stderr.write(f"[*] No key provided. Auto-generated Fernet Key:\n---> {key}\n\n")
+                sys.stderr.write(
+                    f"[*] No key provided. Auto-generated Fernet Key:\n---> {key}\n\n"
+                )
 
             try:
-                self.fernet = Fernet(key.encode() if isinstance(key, str) else key)
+                key_bytes = key.encode() if isinstance(key, str) else key
+                self.fernet = Fernet(key_bytes)  # type: ignore
             except Exception as exc:
                 sys.stderr.write(f"[!] Error initializing Fernet key: {exc}\n")
                 sys.exit(1)
 
     def _mask_value(self, val: str) -> str:
+        """Applies contextual masking to specific PII structures."""
         if "@" in val:
             user, domain = val.split("@", 1)
             masked_user = user[0] + "****" if len(user) > 1 else "*"
@@ -116,28 +176,37 @@ class SanitizerEngine:
             return self._mask_value(text)
 
         if self.mode == "hash":
-            digest = hashlib.sha256(self.salt + text.encode("utf-8", errors="ignore")).hexdigest()
+            digest = hashlib.sha256(
+                self.salt + text.encode("utf-8", errors="ignore")
+            ).hexdigest()
             return digest[:16]
 
         if self.mode == "encrypt" and self.fernet:
-            encrypted_bytes = self.fernet.encrypt(text.encode("utf-8", errors="ignore"))
+            encrypted_bytes = self.fernet.encrypt(
+                text.encode("utf-8", errors="ignore")
+            )
             return f"ENC({encrypted_bytes.decode('utf-8')})"
 
         return text
 
     def decrypt_text_block(self, text: str) -> str:
         """Scans for ENC(...) patterns and decrypts their contents."""
+
         def replace_encrypted(match: re.Match) -> str:
             token = match.group(1)
             try:
-                return self.fernet.decrypt(token.encode("utf-8")).decode("utf-8")
+                if self.fernet:
+                    return self.fernet.decrypt(token.encode("utf-8")).decode(
+                        "utf-8"
+                    )
             except Exception:
-                return match.group(0)
+                pass
+            return match.group(0)
 
         return REGEX_ENC_PATTERN.sub(replace_encrypted, text)
 
     def sanitize_text_block(self, text: str) -> str:
-        """Sanitizes sensitive patterns and key-value pairs within a raw string block."""
+        """Sanitizes sensitive patterns, key-value pairs, and optional unstructured AI PII."""
         if self.mode == "decrypt":
             return self.decrypt_text_block(text)
 
@@ -155,10 +224,19 @@ class SanitizerEngine:
 
             return f"{key_part}{quote}{self.transform(raw_val)}{quote}"
 
+        # 1. Deterministic replacement for secrets (Key-Value)
         text = REGEX_KEY_VALUE_SECRET.sub(replace_secret, text)
 
+        # 2. Deterministic replacement for known RegEx entities (CPF, Email, Card, etc.)
         for pattern in REGEX_PATTERNS.values():
             text = pattern.sub(lambda m: self.transform(m.group(0)), text)
+
+        # 3. Optional AI-based unstructured PII replacement (Names/Locations)
+        if self.use_ai and self.ai_engine:
+            pii_entities = self.ai_engine.extract_unstructured_pii(text)
+            for entity in pii_entities:
+                if len(entity.strip()) > 2:  # Avoid replacing short single-char noise
+                    text = text.replace(entity, self.transform(entity))
 
         return text
 
@@ -202,12 +280,15 @@ def process_sql_stream(
 
             cols = [c.strip(' `"') for c in cols_raw.split(",")]
             sensitive_indices = {
-                idx for idx, col in enumerate(cols)
+                idx
+                for idx, col in enumerate(cols)
                 if any(kw in col.lower() for kw in SENSITIVE_KEYWORDS)
             }
 
             def process_values_group(val_group_str: str) -> str:
-                elements = re.split(r",(?=(?:[^']*'[^']*')*[^']*$)", val_group_str)
+                elements = re.split(
+                    r",(?=(?:[^']*'[^']*')*[^']*$)", val_group_str
+                )
                 new_elements = []
 
                 for idx, elem in enumerate(elements):
@@ -215,7 +296,9 @@ def process_sql_stream(
                     if idx in sensitive_indices:
                         if clean_elem.startswith("'") and clean_elem.endswith("'"):
                             raw_val = clean_elem[1:-1]
-                            new_elements.append(f"'{engine.transform(raw_val)}'")
+                            new_elements.append(
+                                f"'{engine.transform(raw_val)}'"
+                            )
                         else:
                             new_elements.append(engine.transform(clean_elem))
                     else:
@@ -261,7 +344,9 @@ def process_json_stream(
                 )
                 if is_sensitive_key:
                     new_dict[key] = (
-                        engine.transform(val) if isinstance(val, str) else sanitize_obj(val)
+                        engine.transform(val)
+                        if isinstance(val, str)
+                        else sanitize_obj(val)
                     )
                 else:
                     new_dict[key] = sanitize_obj(val)
@@ -331,7 +416,7 @@ def generate_benchmark_file(output_path: str, target_size_mb: int) -> None:
             if line_type == 1:
                 line = (
                     f"2026-07-28 10:15:{random.randint(10, 59)} [INFO] User login success. "
-                    f"Email: {random.choice(emails)}, CPF: {random.choice(cpfs)}\n"
+                    f"Email: {random.choice(emails)}, CPF: {random.choice(cpfs)}, Name: Carlos Silva\n"
                 )
             elif line_type == 2:
                 line = (
@@ -355,6 +440,7 @@ def generate_benchmark_file(output_path: str, target_size_mb: int) -> None:
         f"({bytes_written / (1024 * 1024):.2f} MB) in {elapsed:.2f}s.\n"
     )
 
+
 def read_file_by_line(filepath: str) -> Generator[str, None, None]:
     """Reads a file lazily line-by-line to minimize memory footprint."""
     with open(filepath, "r", encoding="utf-8", errors="replace") as file:
@@ -364,7 +450,7 @@ def read_file_by_line(filepath: str) -> Generator[str, None, None]:
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="High-performance stream sanitizer, encryptor, decrypter, and benchmarking tool."
+        description="High-performance stream sanitizer, encryptor, decrypter, and AI benchmarking tool."
     )
     parser.add_argument("-i", "--input", help="Path to the input file.")
     parser.add_argument("-o", "--output", help="Path to the output file.")
@@ -378,10 +464,18 @@ def main() -> None:
     parser.add_argument(
         "-k",
         "--key",
-        nargs="?",
-        const="",
         default=None,
         help="Fernet key for encryption/decryption (Required for 'decrypt').",
+    )
+    parser.add_argument(
+        "--use-ai",
+        action="store_true",
+        help="Enable AI-based (spaCy NER) detection for unstructured PII (e.g. names and locations).",
+    )
+    parser.add_argument(
+        "--ai-model",
+        default="pt_core_news_sm",
+        help="spaCy model name for NER (default: pt_core_news_sm).",
     )
     parser.add_argument(
         "--generate-bench",
@@ -410,11 +504,17 @@ def main() -> None:
         sys.exit(1)
 
     ext = os.path.splitext(args.input)[1].lower()
-    engine = SanitizerEngine(mode=args.mode, key=args.key)
+    engine = SanitizerEngine(
+        mode=args.mode,
+        key=args.key,
+        use_ai=args.use_ai,
+        ai_model=args.ai_model,
+    )
     reader = read_file_by_line(args.input)
 
     print(f"[*] Starting processing: {args.input}")
     print(f"[*] Mode: {args.mode.upper()}")
+    print(f"[*] AI Engine Enabled: {args.use_ai}")
 
     start_time = time.time()
 
