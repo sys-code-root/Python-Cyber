@@ -24,28 +24,32 @@ Sharing database dumps, production logs, or API payloads with local environments
 Install the optional dependency:
 
 ```bash
+## Installation Commands
+# Basic cryptography dependencies
 pip install cryptography
 
-. Basic Masking (Default Mode)
-Mask sensitive data (CPFs, emails, credit cards, JWTs) in a file:
+# Dependencies to enable targeted AI (spaCy)
+pip install spacy
 
-python sanitizer.py -i raw_logs.txt -o sanitized_logs.txt
+# Download the Portuguese spaCy model (automatically downloaded at runtime if omitted)
+python -m spacy download pt_core_news_sm
 
-2. Hash Sensitive Fields
-Replace matched sensitive strings with deterministic SHA-256 hashes (truncated to 16 chars):
+## Usage Examples
+⚡ Fast & Traditional Mode (Without AI)
+# Generate test dataset
+python script.py --generate-bench 50 -o dataset.log
 
-python sanitizer.py -i dump.sql -o anonymized_dump.sql -m hash
+# Mask deterministic PII (CPF, Credit Cards, Keys)
+python script.py -i dataset.log -o output_masked.log -m mask
 
-3. Symmetric Encryption & Decryption
-Encrypt sensitive fields in-place using a generated or custom Fernet key:
+# Encrypt sensitive records
+python script.py -i dataset.log -o output_encrypted.log -m encrypt -k "Your32ByteFernetKeyHere="
 
-# Encrypt (Auto-generates a key if -k is omitted)
-python sanitizer.py -i database.csv -o encrypted_data.csv -m encrypt
+🧠 Advanced Hybrid AI Mode (--use-ai)
+# Deep analysis using the AI flag and spaCy model
+python script.py -i dataset.log -o output_ai_masked.log -m mask --use-ai
 
-# Decrypt using a specific key
-python sanitizer.py -i encrypted_data.csv -o decrypted_data.csv -m decrypt -k "YOUR_FERNET_KEY_HERE"
+# Specifying an alternative spaCy model (e.g., English)
+python script.py -i dataset.log -o output_ai_en.log -m mask --use-ai --ai-model en_core_web_sm
 
-4. Generate Benchmark Files
-Create synthetic dummy datasets (logs, SQL inserts, tokens) to test processing speed and memory handling:
 
-python sanitizer.py --generate-bench 100 -o benchmark_100mb.log
