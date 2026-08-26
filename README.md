@@ -1,15 +1,3 @@
-<<<<<<< Updated upstream
-Python Tools for Data Engineering & Security
-A set of Python and SQL scripts for data analysis, defensive security, and protecting sensitive information.
-
-Overview
-This repository brings together practical Python and SQL tools to solve everyday challenges in data analysis, system security, personal data protection, and privacy regulation compliance (LGPD/GDPR).
-
-The goal is to provide clean, organized, and ready-to-use code for data pipelines, database modeling, privacy tasks, and secure password and access key management.
-
-Key Features
-Database Engineering & SQL: Table structures and advanced queries for various domains (Sales, Finance, Logistics, and Analytics).
-=======
 Python Tools for Data Engineering & Security A set of Python and SQL scripts for data analysis, defensive security, and protecting sensitive information.
 
 Overview This repository brings together practical Python and SQL tools to solve everyday challenges in data analysis, system security, personal data protection, and privacy regulation compliance (LGPD/GDPR).
@@ -17,7 +5,6 @@ Overview This repository brings together practical Python and SQL tools to solve
 The goal is to provide clean, organized, and ready-to-use code for data pipelines, database modeling, privacy tasks, and secure password and access key management.
 
 Key Features Database Engineering & SQL: Table structures and advanced queries for various domains (Sales, Finance, Logistics, and Analytics).
->>>>>>> Stashed changes
 
 Data Handling & Anonymization: Scripts to mask sensitive fields before storage or processing.
 
@@ -25,23 +12,6 @@ Encryption & Verification: Utilities to encrypt and decrypt files using AES, as 
 
 Log Analysis & Auditing: Automated reading and processing of system logs to identify patterns and issues.
 
-<<<<<<< Updated upstream
-Secure Key & Password Management: An encrypted local vault to safely store API keys, passwords, and backups.
-Repository Structure
-
-├── SQL/           # Database Schemas & Queries (Analytics, Sales, Finance, Logistics)
-├── sanitizer/     # Scripts for Data Masking & Anonymization (LGPD/GDPR Compliance)
-├── sec/           # Audit Logs, Security Checks & Password Vault
-└── setup_toolkit/ # Environment Setup & Command-Line Utilities
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone [https://github.com/sys-code-root/Python-Cyber.git](https://github.com/sys-code-root/Python-Cyber.git)
-cd Python-Cyber
-
-=======
 Secure Key & Password Management: An encrypted local vault to safely store API keys, passwords, and backups. Repository Structure
 
 ├── SQL/ # Database Schemas & Queries (Analytics, Sales, Finance, Logistics) ├── sanitizer/ # Scripts for Data Masking & Anonymization (LGPD/GDPR Compliance) ├── sec/ # Audit Logs, Security Checks & Password Vault └── setup_toolkit/ # Environment Setup & Command-Line Utilities
@@ -51,13 +21,8 @@ Clone the repository:
 git clone [https://github.com/sys-code-root/Python-Cyber.git](https://github.com/sys-code-root/Python-Cyber.git)
 cd Python-Cyber
 
->>>>>>> Stashed changes
 python -m venv venv
 source venv/bin/activate  # Linux/macOS
 # venv\Scripts\activate   # Windows
 
-<<<<<<< Updated upstream
 pip install -r requirements.txt
-=======
-pip install -r requirements.txt
->>>>>>> Stashed changes
