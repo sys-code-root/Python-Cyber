@@ -1,56 +1,45 @@
-Set-Content -Path "README.md" -Value @"
-# Python Tools for Data Engineering & Security
+Python Tools for Data Engineering & Security
+A collection of practical Python and SQL scripts for data analysis, system defense, and privacy.
 
-A set of Python and SQL scripts for data analysis, defensive security, and protecting sensitive information.
+Overview
+This repository contains ready-to-use tools for handling data pipelines, database structures, security audits, and privacy compliance (LGPD/GDPR).
 
----
+It is designed to keep code simple, organized, and effective for everyday tasks like file encryption, log analysis, and data masking.
 
-## Overview
+Features
+Database Engineering & SQL: Table structures and queries for Analytics, Sales, Finance, and Logistics.
 
-This repository brings together practical Python and SQL tools to solve everyday challenges in data analysis, system security, personal data protection, and privacy regulation compliance (LGPD/GDPR).
+Data Anonymization: Scripts to mask sensitive fields before processing or storing data.
 
-The goal is to provide clean, organized, and ready-to-use code for data pipelines, database modeling, privacy tasks, and secure password and access key management.
+Encryption & Integrity: AES encryption tools and hash verification for file safety.
 
----
+Log Analysis: Automated scripts to read system logs and flag potential issues.
 
-## Key Features
+Key & Password Storage: A local encrypted vault for API keys, passwords, and backups.
 
-- **Database Engineering & SQL:** Table structures and advanced queries for various domains (Sales, Finance, Logistics, and Analytics).
-- **Data Handling & Anonymization:** Scripts to mask sensitive fields before storage or processing.
-- **Encryption & Verification:** Utilities to encrypt and decrypt files using AES, as well as file integrity checking via hashes.
-- **Log Analysis & Auditing:** Automated reading and processing of system logs to identify patterns and issues.
-- **Secure Key & Password Management:** An encrypted local vault to safely store API keys, passwords, and backups.
+Repository Structure
+```
+├── SQL/           # Database schemas and queries
+├── sanitizer/     # Data masking and compliance scripts (LGPD/GDPR)
+├── sec/           # Audit logs, security checks, and password vault
+└── setup_toolkit/ # Environment configuration and CLI utilities
+```
 
----
-
-## Repository Structure
-
-\`\`\`
-├── SQL/           # Database Schemas & Queries (Analytics, Sales, Finance, Logistics)
-├── sanitizer/     # Scripts for Data Masking & Anonymization (LGPD/GDPR Compliance)
-├── sec/           # Audit Logs, Security Checks & Password Vault
-└── setup_toolkit/ # Environment Setup & Command-Line Utilities
-\`\`\`
-
----
-
-## Installation
-
-1. Clone the repository:
-\`\`\`bash
+How to Install and Run
+Clone the repository:
+```bash
 git clone https://github.com/sys-code-root/Python-Cyber.git
 cd Python-Cyber
-\`\`\`
+```
 
-2. Create and activate a virtual environment:
-\`\`\`bash
+Create and activate a virtual environment:
+```bash
 python -m venv venv
 source venv/bin/activate  # Linux/macOS
-# venv\Scripts\activate   # Windows
-\`\`\`
 
-3. Install dependencies:
-\`\`\`bash
+venv\Scripts\activate   # Windows
+```
+
+Install dependencies:
+```bash
 pip install -r requirements.txt
-\`\`\`
-"@
