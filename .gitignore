@@ -227,3 +227,8 @@ neon_matrix.db-shm
 # Encryption CLI test files
 restored
 *.enc
+
+# Ajustes pontuais (opcional)
+.vscode/
+.idea/
+*.log
