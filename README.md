@@ -25,25 +25,32 @@ The goal is to provide clean, organized, and ready-to-use code for data pipeline
 
 ## Repository Structure
 
-```text
+\`\`\`
 ├── SQL/           # Database Schemas & Queries (Analytics, Sales, Finance, Logistics)
 ├── sanitizer/     # Scripts for Data Masking & Anonymization (LGPD/GDPR Compliance)
 ├── sec/           # Audit Logs, Security Checks & Password Vault
 └── setup_toolkit/ # Environment Setup & Command-Line Utilities
+\`\`\`
 
-Installation
-Clone the repository:
+---
 
-Bash
-git clone [https://github.com/sys-code-root/Python-Cyber.git](https://github.com/sys-code-root/Python-Cyber.git)
+## Installation
+
+1. Clone the repository:
+\`\`\`bash
+git clone https://github.com/sys-code-root/Python-Cyber.git
 cd Python-Cyber
-Create and activate a virtual environment:
+\`\`\`
 
-Bash
+2. Create and activate a virtual environment:
+\`\`\`bash
 python -m venv venv
 source venv/bin/activate  # Linux/macOS
 # venv\Scripts\activate   # Windows
-Install dependencies:
+\`\`\`
 
-Bash
+3. Install dependencies:
+\`\`\`bash
 pip install -r requirements.txt
+\`\`\`
+"@
